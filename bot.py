@@ -1,6 +1,7 @@
 import telebot
 import json
 import threading
+from telebot import types
 from config import TOKEN
 from datetime import datetime
 from notifier import send_notifications
@@ -55,7 +56,7 @@ def add_reminder_step3(message):
         with open(FILENAME, 'w') as f:
             json.dump(reminders, f)
 
-        bot.reply_to(message, f"Added reminder: {reminder['reminder_text']} to remind every {frequency_hours} hours.")
+        bot.reply_to(message, f"Added reminder: {reminder['reminder_text']} to remind every {frequency_hours} hour(s).")
         del user_states[user_id]  # Remove user state after completing the process
 
     else:
@@ -98,6 +99,18 @@ def delete_reminder(message):
     else:
         bot.reply_to(message, "Please provide a valid reminder index to delete.")
 
+@bot.callback_query_handler(func=lambda call: call.data.startswith("done_"))
+def callback_query(call):
+    _, user_id, creation_time = call.data.split("_")
+    with open('reminders.json', 'r') as f:
+        reminders = json.load(f)
+
+    reminders = [reminder for reminder in reminders if not (reminder['user_id'] == int(user_id) and reminder['creation_time'] == creation_time)]
+
+    with open('reminders.json', 'w') as f:
+        json.dump(reminders, f)
+
+    bot.answer_callback_query(call.id, "Reminder marked as done!")
 
 if __name__ == '__main__':
     t = threading.Thread(target=send_notifications, args=(bot,))
