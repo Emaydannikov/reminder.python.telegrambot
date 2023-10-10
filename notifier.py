@@ -24,4 +24,4 @@ def send_notifications(bot):
                 user_id = reminder['user_id']
                 bot.send_message(user_id, f"Reminder: {reminder['reminder_text']}")
 
-        time.sleep(600)  
+        time.sleep(60)  

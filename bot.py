@@ -99,7 +99,7 @@ def delete_reminder(message):
         bot.reply_to(message, "Please provide a valid reminder index to delete.")
 
 
-if __name__ == "__main__":
-    t = threading.Thread(target=send_notifications)
+if __name__ == '__main__':
+    t = threading.Thread(target=send_notifications, args=(bot,))
     t.start()
     bot.polling(none_stop=True)
