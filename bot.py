@@ -1,16 +1,19 @@
-from config import TOKEN, FILENAME
 import telebot
-from telebot import types
+import threading
 import json
-from datetime import datetime
 import random
 import string
+import notifier
+from config import TOKEN, FILENAME
+from datetime import datetime, timedelta
+from telebot import types
+
 
 bot = telebot.TeleBot(TOKEN)
 user_states = {}
 
 
-def generate_id(length=8):
+def generate_id(length=4):
     chars = string.ascii_lowercase + string.digits
     return ''.join(random.choice(chars) for i in range(length))
 
@@ -32,13 +35,12 @@ def send_welcome(message):
         message.chat.id, "Welcome! What would you like to do?", reply_markup=markup)
 
 
-@bot.callback_query_handler(func=lambda call: True)
-def handle_query(call):
+@bot.callback_query_handler(func=lambda call: call.data in ["add", "view", "delete"])
+def handle_menu_query(call):
     if call.data == "add":
         bot.answer_callback_query(call.id)
         user_states[call.from_user.id] = {"step": 1}
-        bot.send_message(call.from_user.id,
-                         "Please provide the reminder text.")
+        bot.send_message(call.from_user.id, "Please provide the reminder text.")
     elif call.data == "view":
         bot.answer_callback_query(call.id)
         view_reminders(call.from_user.id)
@@ -65,7 +67,7 @@ def view_reminders(user_id):
 
     for reminder in user_reminders:
         bot.send_message(user_id, f"ID: {reminder['id']}\nReminder: {reminder['reminder_text']}\nFrequency: Every {
-                         reminder['frequency_hours']} hour(s)\nTimes to fire: {reminder['times_to_fire']} times\nStatus: {reminder['status']}")
+                         reminder['frequency_hours']} hour(s)\n Times to fire: {reminder['times_to_fire']} times\n Status: {reminder['status']}")
 
 
 @bot.message_handler(func=lambda message: user_states.get(message.from_user.id, {}).get("step") == 1)
@@ -152,6 +154,39 @@ def delete_reminder(message):
         del user_states[user_id]
     else:
         bot.send_message(user_id, "No such reminder found.")
+        
+        
+@bot.callback_query_handler(func=lambda call: call.data.startswith('done:') or call.data.startswith('notyet:'))
+def handle_reminder_query(call):
+    action, reminder_id = call.data.split(":")
+
+    # Load reminders
+    with open(FILENAME, 'r') as f:
+        reminders = json.load(f)
+
+    for reminder in reminders:
+        if reminder["id"] == reminder_id:
+            if action == "done":
+                reminder["times_to_fire"] = 0
+                reminder["status"] = "completed"
+                bot.answer_callback_query(call.id, "Reminder marked as done!")
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Reminder marked as done!")
+            elif action == "notyet":
+                if reminder["times_to_fire"] == 0:
+                    bot.answer_callback_query(call.id, "This was the last reminder!")
+                    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="This was the last reminder and it's now completed!")
+                    reminder["status"] = "completed"
+                else:
+                    next_notification = datetime.now() + timedelta(hours=reminder["frequency_hours"])
+                    bot.answer_callback_query(call.id, f"Okay! Next reminder in {reminder['frequency_hours']} hours at {next_notification.strftime('%H:%M:%S')}")
+                    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Okay! Next reminder in {reminder['frequency_hours']} hours at {next_notification.strftime('%H:%M:%S')}")
+            break
+
+    # Save reminders
+    with open(FILENAME, 'w') as f:
+        json.dump(reminders, f)
 
 
-bot.polling(none_stop=True)
+if __name__ == "__main__":
+    threading.Thread(target=notifier.send_notifications, args=(bot,)).start()
+    bot.polling()

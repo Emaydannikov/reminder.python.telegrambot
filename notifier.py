@@ -1,30 +1,39 @@
-from telebot import types
-from datetime import datetime, timedelta
 import json
 import time
-
-FILENAME = "reminders.json"
+from datetime import datetime
+from telebot import types
+from config import FILENAME
 
 def send_notifications(bot):
     while True:
-        reminders = []
+        # Load reminders
         try:
             with open(FILENAME, 'r') as f:
                 reminders = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
-            pass
-        
-        current_time = datetime.now()
-        next_intervals = []
+            reminders = []
+
         for reminder in reminders:
-            creation_time = datetime.strptime(reminder['creation_time'], '%Y-%m-%d %H:%M:%S')
-            next_reminder_time = creation_time + timedelta(hours=(reminder['frequency_hours'] * (1 + int((current_time - creation_time).total_seconds() / (3600 * reminder['frequency_hours'])))))
-            if current_time >= next_reminder_time:
+            if reminder["status"] == "completed":
+                continue
+
+            creation_time = datetime.strptime(reminder["creation_time"], '%Y-%m-%d %H:%M:%S')
+            time_since_creation = datetime.now() - creation_time
+
+            # If the time since creation is a multiple of the frequency (modulo operation returns 0) and the reminder has times to fire left.
+            if time_since_creation.total_seconds() % (reminder["frequency_hours"] * 3600) < 60 and reminder["times_to_fire"] > 0:
                 markup = types.InlineKeyboardMarkup()
-                button = types.InlineKeyboardButton(text="Done", callback_data=f"done_{reminder['user_id']}_{reminder['creation_time']}")
-                markup.add(button)
-                bot.send_message(reminder['user_id'], f"Reminder: {reminder['reminder_text']}", reply_markup=markup)
-                next_time = next_reminder_time + timedelta(hours=reminder['frequency_hours'])
-                next_intervals.append((next_time - current_time).total_seconds())
-        sleep_duration = min(next_intervals, default=60)
-        time.sleep(sleep_duration)
+                done_btn = types.InlineKeyboardButton("Done", callback_data=f"done:{reminder['id']}")
+                not_yet_btn = types.InlineKeyboardButton("Not Yet", callback_data=f"notyet:{reminder['id']}")
+                markup.add(done_btn, not_yet_btn)
+
+                bot.send_message(reminder["user_id"], f"Reminder: {reminder['reminder_text']}", reply_markup=markup)
+                reminder["times_to_fire"] -= 1
+                if reminder["times_to_fire"] == 0:
+                    reminder["status"] = "completed"
+
+        # Save reminders
+        with open(FILENAME, 'w') as f:
+            json.dump(reminders, f)
+
+        time.sleep(60)
