@@ -1,6 +1,6 @@
 # Ignore configuration files
 config.py
-reminders.json
+*.json
 
 # Ignore Python cache files and directories
 __pycache__/

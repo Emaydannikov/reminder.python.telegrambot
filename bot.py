@@ -20,10 +20,10 @@ def generate_id(length=4):
 
 def generate_markup():
     markup = types.InlineKeyboardMarkup()
-    item1 = types.InlineKeyboardButton("Add Reminder", callback_data="add")
-    item2 = types.InlineKeyboardButton("View Reminders", callback_data="view")
+    item1 = types.InlineKeyboardButton("✅ Add", callback_data="add")
+    item2 = types.InlineKeyboardButton("✳️ View", callback_data="view")
     item3 = types.InlineKeyboardButton(
-        "Delete Reminder", callback_data="delete")
+        "❎ Delete", callback_data="delete")
     markup.add(item1, item2, item3)
     return markup
 
@@ -32,7 +32,7 @@ def generate_markup():
 def send_welcome(message):
     markup = generate_markup()
     bot.send_message(
-        message.chat.id, "Welcome! What would you like to do?", reply_markup=markup)
+        message.chat.id, "🖐Welcome! I am reminder bot. Please choose the option", reply_markup=markup)
 
 
 @bot.callback_query_handler(func=lambda call: call.data in ["add", "view", "delete"])
@@ -40,7 +40,7 @@ def handle_menu_query(call):
     if call.data == "add":
         bot.answer_callback_query(call.id)
         user_states[call.from_user.id] = {"step": 1}
-        bot.send_message(call.from_user.id, "Please provide the reminder text.")
+        bot.send_message(call.from_user.id, "⌨️ Please provide the reminder text.")
     elif call.data == "view":
         bot.answer_callback_query(call.id)
         view_reminders(call.from_user.id)
@@ -48,7 +48,7 @@ def handle_menu_query(call):
         bot.answer_callback_query(call.id)
         user_states[call.from_user.id] = {"step": "delete"}
         bot.send_message(
-            call.from_user.id, "Please provide the ID of the reminder you want to delete.")
+            call.from_user.id, "❌ Please provide the ID of the reminder you want to delete.")
 
 
 def view_reminders(user_id):
@@ -62,12 +62,12 @@ def view_reminders(user_id):
     user_reminders = [
         reminder for reminder in reminders if reminder["user_id"] == user_id]
     if not user_reminders:
-        bot.send_message(user_id, "You have no reminders.")
+        bot.send_message(user_id, "☹️ You have no reminders.")
         return
 
     for reminder in user_reminders:
-        bot.send_message(user_id, f"ID: {reminder['id']}\nReminder: {reminder['reminder_text']}\nFrequency: Every {
-                         reminder['frequency_hours']} hour(s)\n Times to fire: {reminder['times_to_fire']} times\n Status: {reminder['status']}")
+        bot.send_message(user_id, f"ℹ️ ID: {reminder['id']}\n🔤 Reminder: {reminder['reminder_text']}\n🔄 Frequency: Every {
+                         reminder['frequency_hours']} hour(s)\n🔁 Times to fire: {reminder['times_to_fire']} times\n*️⃣ Status: {reminder['status']}")
 
 
 @bot.message_handler(func=lambda message: user_states.get(message.from_user.id, {}).get("step") == 1)
@@ -149,7 +149,7 @@ def delete_reminder(message):
         reminders.remove(reminder_to_delete)
         with open(FILENAME, 'w') as f:
             json.dump(reminders, f)
-        bot.send_message(user_id, f"Deleted reminder: {
+        bot.send_message(user_id, f"🤨 Deleted reminder: {
                          reminder_to_delete['reminder_text']}")
         del user_states[user_id]
     else:
@@ -170,16 +170,16 @@ def handle_reminder_query(call):
                 reminder["times_to_fire"] = 0
                 reminder["status"] = "completed"
                 bot.answer_callback_query(call.id, "Reminder marked as done!")
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Reminder marked as done!")
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="✅ Reminder marked as done!")
             elif action == "notyet":
                 if reminder["times_to_fire"] == 0:
                     bot.answer_callback_query(call.id, "This was the last reminder!")
-                    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="This was the last reminder and it's now completed!")
+                    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="✅ This was the last reminder and it's now completed!")
                     reminder["status"] = "completed"
                 else:
                     next_notification = datetime.now() + timedelta(hours=reminder["frequency_hours"])
-                    bot.answer_callback_query(call.id, f"Okay! Next reminder in {reminder['frequency_hours']} hours at {next_notification.strftime('%H:%M:%S')}")
-                    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Okay! Next reminder in {reminder['frequency_hours']} hours at {next_notification.strftime('%H:%M:%S')}")
+                    bot.answer_callback_query(call.id, f"❇️ Okay! Next reminder in {reminder['frequency_hours']} hours at {next_notification.strftime('%H:%M:%S')}")
+                    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"❇️ Okay! Next reminder in {reminder['frequency_hours']} hours at {next_notification.strftime('%H:%M:%S')}")
             break
 
     # Save reminders
