@@ -66,9 +66,7 @@ def view_reminders(user_id):
         return
 
     for reminder in user_reminders:
-        bot.send_message(user_id, f"ℹ️ ID: {reminder['id']}\n🔤 Reminder: {reminder['reminder_text']}\n🔄 Frequency: Every {
-                         reminder['frequency_hours']} hour(s)\n🔁 Times to fire: {reminder['times_to_fire']} times\n*️⃣ Status: {reminder['status']}")
-
+        bot.send_message(user_id, f"ℹ️ ID: {reminder['id']}\n🔤 Reminder: {reminder['reminder_text']}\n🔄 Frequency: Every {reminder['frequency_hours']} hour(s)\n🔁 Times to fire: {reminder['times_to_fire']} times\n*️⃣ Status: {reminder['status']}")
 
 @bot.message_handler(func=lambda message: user_states.get(message.from_user.id, {}).get("step") == 1)
 def add_reminder_step2(message):
