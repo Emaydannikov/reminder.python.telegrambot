@@ -4,21 +4,37 @@ from datetime import datetime
 from telebot import types
 from config import FILENAME
 
+
+HOUR_MAP = {
+    1: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22],
+    2: [8, 10, 12, 14, 16, 18, 20, 22],
+    3: [8, 11, 14, 17, 20],
+    4: [8, 12, 16, 20],
+    5: [8, 13, 18, 23],
+    6: [8, 14, 20],
+    7: [8, 15, 22],
+    8: [8, 16],
+    9: [8, 17],
+    10: [8, 18],
+    11: [8, 19],
+    12: [8, 20]
+}
 def send_notifications(bot):
     while True:
         time.sleep(60)  # Check every minute
         now = datetime.now()
-        minutes_passed_in_current_hour = now.minute * 60 + now.second
         
+        if now.hour < 8 or now.hour > 22:  # Do not send notifications outside the specified range
+            continue
+
         try:
             with open(FILENAME, 'r') as f:
                 reminders = json.load(f)
             
             for reminder in reminders:
-                creation_time = datetime.strptime(reminder["creation_time"], '%Y-%m-%d %H:%M:%S')
-                minutes_since_creation = (now - creation_time).total_seconds() / 60
-                minutes_to_next_hour = 60 - now.minute
-                if reminder["times_to_fire"] > 0 and minutes_since_creation > minutes_to_next_hour and (minutes_since_creation - minutes_to_next_hour) % (reminder["frequency_hours"] * 60) < 1:
+                frequency = reminder['frequency_hours']
+
+                if now.hour in HOUR_MAP[frequency]:
                     markup = types.InlineKeyboardMarkup()
                     done_btn = types.InlineKeyboardButton("Done", callback_data=f"done:{reminder['id']}")
                     not_yet_btn = types.InlineKeyboardButton("Not Yet", callback_data=f"notyet:{reminder['id']}")
