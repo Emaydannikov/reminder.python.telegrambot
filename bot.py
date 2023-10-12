@@ -81,15 +81,15 @@ def add_reminder_step2(message):
 def add_reminder_step3(message):
     user_id = message.from_user.id
     frequency = message.text.rstrip("h")
-    if frequency.isdigit():
+    
+    if frequency.isdigit() and 1 <= int(frequency) <= 12:
         user_states[user_id]["frequency_hours"] = int(frequency)
         bot.send_message(
             user_id, "How many times should the notification fire? (Input a number or 'infinite')")
         user_states[user_id]["step"] = 3
     else:
         bot.send_message(
-            user_id, "Invalid format. Please enter a valid frequency (e.g., 2h, 4h, 24h).")
-
+            user_id, "Invalid format. Please enter a valid frequency from 1h to 12h.")
 
 @bot.message_handler(func=lambda message: user_states.get(message.from_user.id, {}).get("step") == 3)
 def add_reminder_step4(message):
