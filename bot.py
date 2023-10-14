@@ -9,9 +9,8 @@ user_data = {}
 user_delete_data = {}
 user_edit_data = {}
 
+
 # BASIC BOT ACTIONS begin
-
-
 def send_reply(message, text):
     bot.reply_to(message, text)
 
@@ -35,13 +34,14 @@ def delete_user_message(message):
 def send_welcome(message):
     delete_user_message(message)
     send_message(message.chat.id,
-                 "Welcome! Use the following commands:\n/start - to see welcome message\n/new - to create a new notification\n/view - to view saved notifications\n/delete - to delete notifications")
+                 "Welcome! Use the following commands:\n/start - to see welcome message\n/new - to create a new notification\n/edit - to edit notifications\n/view - to view saved notifications\n/delete - to delete notifications")
 # START end
 
 
 # NEW begin
 @bot.message_handler(commands=['new'])
 def new_notification_command(message):
+    delete_user_message(message)
     user_id = message.from_user.id
     user_data[user_id] = {}
     send_message(message.chat.id, "Please enter the notification text:")
@@ -87,6 +87,7 @@ def get_total_count(message):
 # VIEW begin
 @bot.message_handler(commands=['view'])
 def view_notifications(message):
+    delete_user_message(message)
     user_id = message.from_user.id
     user_notifications = get_notifications_for_user(user_id)
 
@@ -103,6 +104,7 @@ def view_notifications(message):
 # DELETE begin
 @bot.message_handler(commands=['delete'])
 def prompt_delete_notification(message):
+    delete_user_message(message)
     user_id = message.from_user.id
     user_notifications = get_notifications_for_user(user_id)
 
@@ -174,6 +176,7 @@ def update_notification_after_sending(notification):
 # EDIT begin
 @bot.message_handler(commands=['edit'])
 def prompt_edit_notification(message):
+    delete_user_message(message)
     user_id = message.from_user.id
     user_notifications = get_notifications_for_user(user_id)
 
