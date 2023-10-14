@@ -1,190 +1,163 @@
+from config import TOKEN
+from json_proc import create_notification, get_notifications_for_user, format_notification, get_notification_by_id_or_text, delete_notification_by_id, load_notifications, save_notifications
 import telebot
 import threading
-import json
-import random
-import string
-import notifier
-from config import TOKEN, FILENAME
-from datetime import datetime, timedelta
-from telebot import types
-
+import time
 
 bot = telebot.TeleBot(TOKEN)
-user_states = {}
+user_data = {}
+user_delete_data = {}
 
 
-def generate_id(length=4):
-    chars = string.ascii_lowercase + string.digits
-    return ''.join(random.choice(chars) for i in range(length))
+def send_reply(message, text):
+    bot.reply_to(message, text)
 
 
-def generate_markup():
-    markup = types.InlineKeyboardMarkup()
-    item1 = types.InlineKeyboardButton("✅ Add", callback_data="add")
-    item2 = types.InlineKeyboardButton("✳️ View", callback_data="view")
-    item3 = types.InlineKeyboardButton(
-        "❎ Delete", callback_data="delete")
-    markup.add(item1, item2, item3)
-    return markup
+def send_message(chat_id, text):
+    bot.send_message(chat_id, text)
+
+
+def delete_user_message(message):
+    chat_id = message.chat.id
+    message_id = message.message_id
+    try:
+        bot.delete_message(chat_id, message_id)
+    except Exception as e:
+        print(f"Failed to delete message: {e}")
 
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    markup = generate_markup()
-    bot.send_message(
-        message.chat.id, "🖐Welcome! I am reminder bot. Please choose the option", reply_markup=markup)
+    delete_user_message(message)
+    send_message(message.chat.id,
+                 "Welcome! Use the following commands:\n/start - to see welcome message\n/new - to create a new notification\n/view - to view saved notifications\n/delete - to delete notifications")
 
 
-@bot.callback_query_handler(func=lambda call: call.data in ["add", "view", "delete"])
-def handle_menu_query(call):
-    if call.data == "add":
-        bot.answer_callback_query(call.id)
-        user_states[call.from_user.id] = {"step": 1}
-        bot.send_message(call.from_user.id, "⌨️ Please provide the reminder text.")
-    elif call.data == "view":
-        bot.answer_callback_query(call.id)
-        view_reminders(call.from_user.id)
-    elif call.data == "delete":
-        bot.answer_callback_query(call.id)
-        user_states[call.from_user.id] = {"step": "delete"}
-        bot.send_message(
-            call.from_user.id, "❌ Please provide the ID of the reminder you want to delete.")
+@bot.message_handler(commands=['new'])
+def new_notification_command(message):
+    user_id = message.from_user.id
+    user_data[user_id] = {}
+    send_message(message.chat.id, "Please enter the notification text:")
 
 
-def view_reminders(user_id):
-    reminders = []
+@bot.message_handler(func=lambda message: message.from_user.id in user_data and 'text' not in user_data[message.from_user.id])
+def get_text(message):
+    user_id = message.from_user.id
+    user_data[user_id]['text'] = message.text
+    send_message(message.chat.id,
+                 "Please specify how often you want to receive notifications (in hours):")
+
+
+@bot.message_handler(func=lambda message: message.from_user.id in user_data and 'text' in user_data[message.from_user.id] and 'frequency' not in user_data[message.from_user.id])
+def get_frequency(message):
+    user_id = message.from_user.id
     try:
-        with open(FILENAME, 'r') as f:
-            reminders = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        pass
+        frequency = float(message.text)
+        user_data[user_id]['frequency'] = frequency * 60
+        send_message(
+            message.chat.id, "Please specify the total number of notifications you want to receive:")
+    except ValueError:
+        send_message(message.chat.id, "Invalid input. Please enter a number.")
 
-    user_reminders = [
-        reminder for reminder in reminders if reminder["user_id"] == user_id]
-    if not user_reminders:
-        bot.send_message(user_id, "☹️ You have no reminders.")
+
+@bot.message_handler(func=lambda message: message.from_user.id in user_data and 'frequency' in user_data[message.from_user.id] and 'total_count' not in user_data[message.from_user.id])
+def get_total_count(message):
+    user_id = message.from_user.id
+    try:
+        total_count = int(message.text)
+        user_data[user_id]['total_count'] = total_count
+        notification = create_notification(
+            user_id, user_data[user_id]['text'], user_data[user_id]['frequency'], total_count)
+        send_message(message.chat.id, f"Notification created with ID: {
+                     notification['notification_id']}")
+        del user_data[user_id]
+    except ValueError:
+        send_message(message.chat.id,
+                     "Invalid input. Please enter an integer.")
+
+
+@bot.message_handler(commands=['view'])
+def view_notifications(message):
+    user_id = message.from_user.id
+    user_notifications = get_notifications_for_user(user_id)
+
+    if not user_notifications:
+        send_message(message.chat.id, "You have no notifications.")
         return
 
-    for reminder in user_reminders:
-        bot.send_message(user_id, f"➡️ID: {reminder['id']}\n🔤 Reminder: {reminder['reminder_text']}\n🔄 Frequency: Every {reminder['frequency_hours']} hour(s)\n🔁 Times to fire: {reminder['times_to_fire']} times\n*️⃣ Status: {reminder['status']}")
+    for notification in user_notifications:
+        formatted_notification = format_notification(notification)
+        send_message(message.chat.id, formatted_notification)
 
-@bot.message_handler(func=lambda message: user_states.get(message.from_user.id, {}).get("step") == 1)
-def add_reminder_step2(message):
+
+@bot.message_handler(commands=['delete'])
+def prompt_delete_notification(message):
     user_id = message.from_user.id
-    user_states[user_id]["reminder_text"] = message.text
-    bot.send_message(
-        user_id, "How often should I remind you? (e.g., 2h, 4h, 24h)")
-    user_states[user_id]["step"] = 2
+    user_notifications = get_notifications_for_user(user_id)
+
+    if not user_notifications:
+        send_message(message.chat.id, "You have no notifications.")
+        return
+
+    info_messages = [f"ID: {n['notification_id']
+                            } - Text: {n['text']}" for n in user_notifications]
+    for msg in info_messages:
+        send_message(message.chat.id, msg)
+
+    send_message(message.chat.id,
+                 "Please enter the Notification ID or text of the notification you want to delete.")
+    user_delete_data[user_id] = "awaiting_delete_confirmation"
 
 
-@bot.message_handler(func=lambda message: user_states.get(message.from_user.id, {}).get("step") == 2)
-def add_reminder_step3(message):
+@bot.message_handler(func=lambda message: message.from_user.id in user_delete_data and user_delete_data[message.from_user.id] == "awaiting_delete_confirmation")
+def process_delete(message):
     user_id = message.from_user.id
-    frequency = message.text.rstrip("h")
-    
-    if frequency.isdigit() and 1 <= int(frequency) <= 12:
-        user_states[user_id]["frequency_hours"] = int(frequency)
-        bot.send_message(
-            user_id, "How many times should the notification fire? (Input a number or 'infinite')")
-        user_states[user_id]["step"] = 3
+    identifier = message.text
+
+    notification = get_notification_by_id_or_text(user_id, identifier)
+    if notification:
+        delete_notification_by_id(notification['notification_id'])
+        send_message(message.chat.id, f"Notification (Text: '{
+                     notification['text']}' - ID: {notification['notification_id']}) has been successfully deleted.")
+        del user_delete_data[user_id]
     else:
-        bot.send_message(
-            user_id, "Invalid format. Please enter a valid frequency from 1h to 12h.")
-
-@bot.message_handler(func=lambda message: user_states.get(message.from_user.id, {}).get("step") == 3)
-def add_reminder_step4(message):
-    user_id = message.from_user.id
-    if message.text.isdigit() or message.text == "infinite":
-        times_to_fire = int(message.text) if message.text.isdigit() else 9999
-        user_states[user_id]["times_to_fire"] = times_to_fire
-
-        reminder = {
-            "id": generate_id(),
-            "user_id": user_id,
-            "creation_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            "reminder_text": user_states[user_id]["reminder_text"],
-            "frequency_hours": user_states[user_id]["frequency_hours"],
-            "times_to_fire": user_states[user_id]["times_to_fire"],
-            "status": "not completed"
-        }
-
-        reminders = []
-        try:
-            with open(FILENAME, 'r') as f:
-                reminders = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
-
-        reminders.append(reminder)
-
-        with open(FILENAME, 'w') as f:
-            json.dump(reminders, f)
-
-        bot.send_message(user_id, f"Added reminder: {reminder['reminder_text']} to remind every {
-                         reminder['frequency_hours']} hour(s) for {reminder['times_to_fire']} times.")
-        del user_states[user_id]
-        send_welcome(message)
-    else:
-        bot.send_message(
-            user_id, "Invalid input. Please enter a valid number or 'infinite'.")
+        send_message(
+            message.chat.id, "No notification found with the provided ID or text. Please try again.")
 
 
-@bot.message_handler(func=lambda message: user_states.get(message.from_user.id, {}).get("step") == "delete")
-def delete_reminder(message):
-    user_id = message.from_user.id
-    reminder_id = message.text
+def notification_worker():
+    while True:
+        notifications = load_notifications()
+        current_time = time.time()
 
-    reminders = []
-    try:
-        with open(FILENAME, 'r') as f:
-            reminders = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        pass
+        for notification in notifications:
+            if notification['status'] == 'active' and notification['next_notification_time'] <= current_time:
+                send_notification_to_user(notification)
+                update_notification_after_sending(notification)
 
-    reminder_to_delete = next(
-        (reminder for reminder in reminders if reminder["id"] == reminder_id and reminder["user_id"] == user_id), None)
-    if reminder_to_delete:
-        reminders.remove(reminder_to_delete)
-        with open(FILENAME, 'w') as f:
-            json.dump(reminders, f)
-        bot.send_message(user_id, f"🤨 Deleted reminder: {
-                         reminder_to_delete['reminder_text']}")
-        del user_states[user_id]
-    else:
-        bot.send_message(user_id, "No such reminder found.")
-        
-        
-@bot.callback_query_handler(func=lambda call: call.data.startswith('done:') or call.data.startswith('notyet:'))
-def handle_reminder_query(call):
-    action, reminder_id = call.data.split(":")
-
-    # Load reminders
-    with open(FILENAME, 'r') as f:
-        reminders = json.load(f)
-
-    for reminder in reminders:
-        if reminder["id"] == reminder_id:
-            if action == "done":
-                reminder["times_to_fire"] = 0
-                reminder["status"] = "completed"
-                bot.answer_callback_query(call.id, "Reminder marked as done!")
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="✅ Reminder marked as done!")
-            elif action == "notyet":
-                if reminder["times_to_fire"] == 0:
-                    bot.answer_callback_query(call.id, "This was the last reminder!")
-                    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="✅ This was the last reminder and it's now completed!")
-                    reminder["status"] = "completed"
-                else:
-                    next_notification = datetime.now() + timedelta(hours=reminder["frequency_hours"])
-                    bot.answer_callback_query(call.id, f"❇️ Okay! Next reminder in {reminder['frequency_hours']} hours at {next_notification.strftime('%H:%M:%S')}")
-                    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"❇️ Okay! Next reminder in {reminder['frequency_hours']} hours at {next_notification.strftime('%H:%M:%S')}")
-            break
-
-    # Save reminders
-    with open(FILENAME, 'w') as f:
-        json.dump(reminders, f)
+        time.sleep(10)  # Check every 10 seconds
 
 
-if __name__ == "__main__":
-    threading.Thread(target=notifier.send_notifications, args=(bot,)).start()
-    bot.polling()
+def send_notification_to_user(notification):
+    user_id = notification['user_id']
+    Reminder = f"Reminder: {notification['text']}"
+    send_message(user_id, Reminder)
+
+
+def update_notification_after_sending(notification):
+    notification['sent_count'] += 1
+    notification['next_notification_time'] += notification['frequency'] * 60
+
+    if notification['sent_count'] >= notification['total_count']:
+        notification['status'] = 'inactive'
+
+    notifications = load_notifications()
+    updated_notifications = [n if n['notification_id'] !=
+                             notification['notification_id'] else notification for n in notifications]
+    save_notifications(updated_notifications)
+
+
+notification_thread = threading.Thread(target=notification_worker)
+notification_thread.start()
+if __name__ == '__main__':
+    bot.polling(none_stop=True)
