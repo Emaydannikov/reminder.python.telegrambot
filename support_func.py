@@ -22,7 +22,7 @@ def generate_markup():
 
 
 def setup_logging():
-    logging.basicConfig(filename='bot.log',level=logging.INFO,format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename='bot.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     logger = logging.getLogger()
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
