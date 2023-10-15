@@ -59,8 +59,7 @@ def get_notifications_for_user(user_id):
 def format_notification(notification):
     """Format a notification for display."""
     next_time = timestamp_to_datetime(notification['next_notification_time'])
-    formatted_next_time = next_time.strftime(
-        '%Y-%m-%d %H:%M:%S')  # Format as needed
+    formatted_next_time = next_time.strftime('%Y-%m-%d %H:%M:%S')  # Format as needed
     return (
         f"Notification ID: {notification['notification_id']}\n"
         f"Text: {notification['text']}\n"
