@@ -33,7 +33,7 @@ def delete_user_message(message):
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     delete_user_message(message)
-    send_message(message.chat.id,"Welcome! Use the following commands:\n/start - to see welcome message\n/new - to create a new notification\n/edit - to edit notifications\n/view - to view saved notifications\n/delete - to delete notifications")
+    send_message(message.chat.id, "Welcome! Use the following commands:\n/start - to see welcome message\n/new - to create a new notification\n/edit - to edit notifications\n/view - to view saved notifications\n/delete - to delete notifications")
 # START end
 
 
@@ -50,7 +50,7 @@ def new_notification_command(message):
 def get_text(message):
     user_id = message.from_user.id
     user_data[user_id]['text'] = message.text
-    send_message(message.chat.id,"Please specify how often you want to receive notifications (in hours):")
+    send_message(message.chat.id, "Please specify how often you want to receive notifications (in hours):")
 
 
 @bot.message_handler(func=lambda message: message.from_user.id in user_data and 'text' in user_data[message.from_user.id] and 'frequency' not in user_data[message.from_user.id])
@@ -74,7 +74,7 @@ def get_total_count(message):
         send_message(message.chat.id, f"Notification created with ID: {notification['notification_id']}")
         del user_data[user_id]
     except ValueError:
-        send_message(message.chat.id,"Invalid input. Please enter an integer.")
+        send_message(message.chat.id, "Invalid input. Please enter an integer.")
 # NEW end
 
 
@@ -110,7 +110,7 @@ def prompt_delete_notification(message):
     for msg in info_messages:
         send_message(message.chat.id, msg)
 
-    send_message(message.chat.id,"Please enter the Notification ID or text of the notification you want to delete.")
+    send_message(message.chat.id, "Please enter the Notification ID or text of the notification you want to delete.")
     user_delete_data[user_id] = "awaiting_delete_confirmation"
 
 
@@ -178,7 +178,7 @@ def prompt_edit_notification(message):
     for msg in info_messages:
         send_message(message.chat.id, msg)
 
-    send_message(message.chat.id,"Please enter the Notification ID of the notification you want to edit.")
+    send_message(message.chat.id, "Please enter the Notification ID of the notification you want to edit.")
     user_edit_data[user_id] = {'step': 'awaiting_id'}
 
 
@@ -205,7 +205,7 @@ def process_edit_field(message):
     if field in ['text', 'frequency', 'total_count']:
         user_edit_data[user_id]['field'] = field
         user_edit_data[user_id]['step'] = 'awaiting_value'
-        send_message(message.chat.id,f"Please enter the new value for {field}.")
+        send_message(message.chat.id, f"Please enter the new value for {field}.")
     else:
         send_message(
             message.chat.id, "Invalid field. Please select one of: text, frequency, total_count.")
