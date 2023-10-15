@@ -232,8 +232,7 @@ def process_edit_value(message):
         send_message(message.chat.id, f"Notification with ID {notification['notification_id']} has been successfully updated.")
         del user_edit_data[user_id]
     except ValueError:
-        send_message(message.chat.id, f"Invalid input for {
-                     field}. Please try again.")
+        send_message(message.chat.id, f"Invalid input for {field}. Please try again.")
 # EDIT end
 
 
