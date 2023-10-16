@@ -33,7 +33,7 @@ def delete_user_message(message):
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     delete_user_message(message)
-    send_message(message.chat.id, "Welcome! Use the following commands:\n/start - to see welcome message\n/new - to create a new notification\n/edit - to edit notifications\n/view - to view saved notifications\n/delete - to delete notifications")
+    send_message(message.chat.id, "Welcome! 👋 Use the following commands:\n/start - to see welcome message\n/new - to create a new notification\n/edit - to edit notifications\n/view - to view saved notifications\n/delete - to delete notifications")
 # START end
 
 
@@ -43,14 +43,14 @@ def new_notification_command(message):
     delete_user_message(message)
     user_id = message.from_user.id
     user_data[user_id] = {}
-    send_message(message.chat.id, "Please enter the notification text:")
+    send_message(message.chat.id, "⌨️ Please enter the notification text:")
 
 
 @bot.message_handler(func=lambda message: message.from_user.id in user_data and 'text' not in user_data[message.from_user.id])
 def get_text(message):
     user_id = message.from_user.id
     user_data[user_id]['text'] = message.text
-    send_message(message.chat.id, "Please specify how often you want to receive notifications (in hours):")
+    send_message(message.chat.id, "🕒 Please specify how often you want to receive notifications (in hours):")
 
 
 @bot.message_handler(func=lambda message: message.from_user.id in user_data and 'text' in user_data[message.from_user.id] and 'frequency' not in user_data[message.from_user.id])
@@ -59,9 +59,9 @@ def get_frequency(message):
     try:
         frequency = float(message.text)
         user_data[user_id]['frequency'] = frequency * 60
-        send_message(message.chat.id, "Please specify the total number of notifications you want to receive:")
+        send_message(message.chat.id, "💫 Please specify the total number of notifications you want to receive:")
     except ValueError:
-        send_message(message.chat.id, "Invalid input. Please enter a number.")
+        send_message(message.chat.id, "❌ Invalid input. Please enter a number.")
 
 
 @bot.message_handler(func=lambda message: message.from_user.id in user_data and 'frequency' in user_data[message.from_user.id] and 'total_count' not in user_data[message.from_user.id])
@@ -71,10 +71,10 @@ def get_total_count(message):
         total_count = int(message.text)
         user_data[user_id]['total_count'] = total_count
         notification = create_notification(user_id, user_data[user_id]['text'], user_data[user_id]['frequency'], total_count)
-        send_message(message.chat.id, f"Notification created with ID: {notification['notification_id']}")
+        send_message(message.chat.id, f"✅ Notification created with ID: {notification['notification_id']}")
         del user_data[user_id]
     except ValueError:
-        send_message(message.chat.id, "Invalid input. Please enter an integer.")
+        send_message(message.chat.id, "❌ Invalid input. Please enter an integer.")
 # NEW end
 
 
@@ -86,7 +86,7 @@ def view_notifications(message):
     user_notifications = get_notifications_for_user(user_id)
 
     if not user_notifications:
-        send_message(message.chat.id, "You have no notifications.")
+        send_message(message.chat.id, "🤷‍♂️ You have no notifications.")
         return
 
     for notification in user_notifications:
@@ -103,14 +103,14 @@ def prompt_delete_notification(message):
     user_notifications = get_notifications_for_user(user_id)
 
     if not user_notifications:
-        send_message(message.chat.id, "You have no notifications.")
+        send_message(message.chat.id, "🤷‍♂️ You have no notifications.")
         return
 
-    info_messages = [f"ID: {n['notification_id']} - Text: {n['text']}" for n in user_notifications]
+    info_messages = [f"✨ ID: {n['notification_id']} - Text: {n['text']}" for n in user_notifications]
     for msg in info_messages:
         send_message(message.chat.id, msg)
 
-    send_message(message.chat.id, "Please enter the Notification ID or text of the notification you want to delete.")
+    send_message(message.chat.id, "❎ Please enter the Notification ID or text of the notification you want to delete.")
     user_delete_data[user_id] = "awaiting_delete_confirmation"
 
 
@@ -122,11 +122,11 @@ def process_delete(message):
     notification = get_notification_by_id_or_text(user_id, identifier)
     if notification:
         delete_notification_by_id(notification['notification_id'])
-        send_message(message.chat.id, f"Notification (Text: '{notification['text']}' - ID: {notification['notification_id']}) has been successfully deleted.")
+        send_message(message.chat.id, f"❎ Notification (Text: '{notification['text']}' - ID: {notification['notification_id']}) has been successfully deleted.")
         del user_delete_data[user_id]
     else:
         send_message(
-            message.chat.id, "No notification found with the provided ID or text. Please try again.")
+            message.chat.id, "🤷‍♂️ No notification found with the provided ID or text. Please try again.")
 # DELETE end
 
 
@@ -141,12 +141,13 @@ def notification_worker():
                 send_notification_to_user(notification)
                 update_notification_after_sending(notification)
 
-        time.sleep(10)  # Check every 10 seconds
+        time.sleep(30)  # Check every 30 seconds
 
 
 def send_notification_to_user(notification):
     user_id = notification['user_id']
-    Reminder = f"Reminder: {notification['text']}"
+    Reminder = f"ℹ️ Reminder: {notification['text']}\nℹ️ Next reminder will fire in {
+        notification['frequency']} min\nℹ️ {(notification['total_count']-notification['sent_count'])-1} time(s) left"
     send_message(user_id, Reminder)
 
 
@@ -171,14 +172,14 @@ def prompt_edit_notification(message):
     user_notifications = get_notifications_for_user(user_id)
 
     if not user_notifications:
-        send_message(message.chat.id, "You have no notifications.")
+        send_message(message.chat.id, "🤷‍♂️ You have no notifications.")
         return
 
     info_messages = [f"ID: {n['notification_id']} - Text: {n['text']}" for n in user_notifications]
     for msg in info_messages:
         send_message(message.chat.id, msg)
 
-    send_message(message.chat.id, "Please enter the Notification ID of the notification you want to edit.")
+    send_message(message.chat.id, "⌨️ Please enter the Notification ID of the notification you want to edit.")
     user_edit_data[user_id] = {'step': 'awaiting_id'}
 
 
@@ -191,10 +192,10 @@ def process_edit_id(message):
     if notification:
         user_edit_data[user_id] = {'step': 'awaiting_field', 'notification': notification}
         send_message(
-            message.chat.id, "Which field would you like to edit? (text, frequency, total_count)")
+            message.chat.id, "⌨️ Which field would you like to edit? (text, frequency, total_count)")
     else:
         send_message(
-            message.chat.id, "No notification found with the provided ID. Please try again.")
+            message.chat.id, "🤷‍♂️ No notification found with the provided ID. Please try again.")
 
 
 @bot.message_handler(func=lambda message: message.from_user.id in user_edit_data and user_edit_data[message.from_user.id]['step'] == 'awaiting_field')
@@ -205,10 +206,10 @@ def process_edit_field(message):
     if field in ['text', 'frequency', 'total_count']:
         user_edit_data[user_id]['field'] = field
         user_edit_data[user_id]['step'] = 'awaiting_value'
-        send_message(message.chat.id, f"Please enter the new value for {field}.")
+        send_message(message.chat.id, f"⌨️ Please enter the new value for {field}.")
     else:
         send_message(
-            message.chat.id, "Invalid field. Please select one of: text, frequency, total_count.")
+            message.chat.id, "🤷‍♂️ Invalid field. Please select one of: text, frequency, total_count.")
 
 
 @bot.message_handler(func=lambda message: message.from_user.id in user_edit_data and user_edit_data[message.from_user.id]['step'] == 'awaiting_value')
@@ -229,10 +230,10 @@ def process_edit_value(message):
         updated_notifications = [n if n['notification_id'] != notification['notification_id'] else notification for n in notifications]
         save_notifications(updated_notifications)
 
-        send_message(message.chat.id, f"Notification with ID {notification['notification_id']} has been successfully updated.")
+        send_message(message.chat.id, f"💾 Notification with ID {notification['notification_id']} has been successfully updated.")
         del user_edit_data[user_id]
     except ValueError:
-        send_message(message.chat.id, f"Invalid input for {field}. Please try again.")
+        send_message(message.chat.id, f"🤷‍♂️ Invalid input for {field}. Please try again.")
 # EDIT end
 
 
