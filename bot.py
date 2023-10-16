@@ -146,8 +146,7 @@ def notification_worker():
 
 def send_notification_to_user(notification):
     user_id = notification['user_id']
-    Reminder = f"ℹ️ Reminder: {notification['text']}\nℹ️ Next reminder will fire in {
-        notification['frequency']} min\nℹ️ {(notification['total_count']-notification['sent_count'])-1} time(s) left"
+    Reminder = f"ℹ️ Reminder: {notification['text']}\nℹ️ Next reminder will fire in {notification['frequency']} min\nℹ️ {(notification['total_count']-notification['sent_count'])-1} time(s) left"
     send_message(user_id, Reminder)
 
 
