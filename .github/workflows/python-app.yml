@@ -31,29 +31,29 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Remote service stop
-      uses: spcily/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.REMOTE_SERVER_IP }}
-        username: ${{ secrets.SSH_USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: ${{ secrets.REMOTE_SERVER_PORT }}
-        script: sudo systemctl stop my_telegram_bot.service
-    - name: Copy via ssh
-      uses: garygrossgarten/github-action-scp@v0.8.0
-      with:
-        local: .
-        remote: /home/py-bot/
-        host: ${{ secrets.REMOTE_SERVER_IP }}
-        username: ${{ secrets.SSH_USERNAME }}
-        privateKey: ${{ secrets.SSH_PRIVATE_KEY }}
-    - name: Remote service start
-      uses: spcily/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.REMOTE_SERVER_IP }}
-        username: ${{ secrets.SSH_USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: ${{ secrets.REMOTE_SERVER_PORT }}
-        script: sudo systemctl start my_telegram_bot.service
+    - name: Setup SSH client
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ssh-client rsync
+
+    - name: Deploy to remote node
+      env:
+        PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        HOST: ${{ secrets.REMOTE_SERVER_IP }}
+        USER: ${{ secrets.SSH_USERNAME }}
+        PATH: ${{ secrets.REMOTE_DESTINATION_PATH }}
+      run: |
+        # Save the private key to a file and give the necessary permissions
+        echo "$PRIVATE_KEY" > private_key
+        chmod 600 private_key
+        
+        # Stop the service on the remote node
+        ssh -i private_key -o StrictHostKeyChecking=no $USER@$HOST "sudo systemctl stop my_telegram_bot.service"
+        
+        # Use rsync to copy the files from the repository to the remote node
+        rsync -avz -e "ssh -i private_key -o StrictHostKeyChecking=no" ./ $USER@$HOST:$PATH
+
+        # Start the service on the remote node
+        ssh -i private_key -o StrictHostKeyChecking=no $USER@$HOST "sudo systemctl start my_telegram_bot.service"
 
             
