@@ -49,14 +49,15 @@ jobs:
         
         # Stop the service on the remote node
         ssh -i private_key -o StrictHostKeyChecking=no $USER@$HOST "sudo systemctl stop my_telegram_bot.service"
-        ssh -i private_key -o StrictHostKeyChecking=no $USER@$HOST "sudo mkdir $DEST_PATH"
+        #ssh -i private_key -o StrictHostKeyChecking=no $USER@$HOST "sudo mkdir $DEST_PATH"
         ssh -i private_key -o StrictHostKeyChecking=no $USER@$HOST "sudo chown -R $USER:$USER $DEST_PATH"
         
         
         # Use rsync to copy the files from the repository to the remote node
-        rsync -avz -e "ssh -i private_key -o StrictHostKeyChecking=no" ./ $USER@$HOST:$DEST_PATH
+        rsync -avz -e "ssh -i private_key -o StrictHostKeyChecking=no" ./bot.py $USER@$HOST:$DEST_PATH
+        rsync -avz -e "ssh -i private_key -o StrictHostKeyChecking=no" ./json_proc.py $USER@$HOST:$DEST_PATH
+        rsync -avz -e "ssh -i private_key -o StrictHostKeyChecking=no" ./support_func.py $USER@$HOST:$DEST_PATH
+
 
         # Start the service on the remote node
         ssh -i private_key -o StrictHostKeyChecking=no $USER@$HOST "sudo systemctl start my_telegram_bot.service"
-
-            
