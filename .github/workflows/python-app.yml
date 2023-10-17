@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  tests:
+  Test and Deploy:
 
     runs-on: ubuntu-latest
 
@@ -43,21 +43,22 @@ jobs:
         USER: ${{ secrets.SSH_USERNAME }}
         DEST_PATH: ${{ secrets.REMOTE_DESTINATION_PATH }}
       run: |
-        # Save the private key to a file and give the necessary permissions
         echo "$PRIVATE_KEY" > private_key
         chmod 600 private_key
         
-        # Stop the service on the remote node
         ssh -i private_key -o StrictHostKeyChecking=no $USER@$HOST "sudo systemctl stop my_telegram_bot.service"
+        echo "Service stopped"
+        #If we need new directory
         #ssh -i private_key -o StrictHostKeyChecking=no $USER@$HOST "sudo mkdir $DEST_PATH"
         ssh -i private_key -o StrictHostKeyChecking=no $USER@$HOST "sudo chown -R $USER:$USER $DEST_PATH"
-        
+        echo "Permissions granted"
         
         # Use rsync to copy the files from the repository to the remote node
         rsync -avz -e "ssh -i private_key -o StrictHostKeyChecking=no" ./bot.py $USER@$HOST:$DEST_PATH
         rsync -avz -e "ssh -i private_key -o StrictHostKeyChecking=no" ./json_proc.py $USER@$HOST:$DEST_PATH
         rsync -avz -e "ssh -i private_key -o StrictHostKeyChecking=no" ./support_func.py $USER@$HOST:$DEST_PATH
-
+        echo "Files updated"
 
         # Start the service on the remote node
         ssh -i private_key -o StrictHostKeyChecking=no $USER@$HOST "sudo systemctl start my_telegram_bot.service"
+        echo "Service started"
