@@ -61,13 +61,13 @@ def format_notification(notification):
     next_time = timestamp_to_datetime(notification['next_notification_time'])
     formatted_next_time = next_time.strftime('%Y-%m-%d %H:%M:%S')  # Format as needed
     return (
-        f"Notification ID: {notification['notification_id']}\n"
-        f"Text: {notification['text']}\n"
-        f"Frequency: {notification['frequency']} minutes\n"
-        f"Total Count: {notification['total_count']}\n"
-        f"Sent Count: {notification['sent_count']}\n"
-        f"Next Notification Time: {formatted_next_time}\n"
-        f"Status: {notification['status']}"
+        f"🆔 ID: {notification['notification_id']}\n"
+        f"📝 Text: {notification['text']}\n"
+        f"💫 Frequency: {notification['frequency']} minutes\n"
+        f"✨ Total Count: {notification['total_count']}\n"
+        f"⭐️ Sent Count: {notification['sent_count']}\n"
+        f"🕒 Next Notification Time: {formatted_next_time}\n"
+        f"ℹ️ Status: {notification['status']}"
     )
 
 
