@@ -39,7 +39,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.REMOTE_SERVER_PORT }}
           script: sudo systemctl stop my_telegram_bot.service
-   - name: Copy via ssh
+    - name: Copy via ssh
       uses: garygrossgarten/github-action-scp@v0.8.0
       with:
           local: .
