@@ -34,26 +34,26 @@ jobs:
     - name: Remote service stop
       uses: spcily/ssh-action@v1.0.0
       with:
-          host: ${{ secrets.REMOTE_SERVER_IP }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.REMOTE_SERVER_PORT }}
-          script: sudo systemctl stop my_telegram_bot.service
+        host: ${{ secrets.REMOTE_SERVER_IP }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.REMOTE_SERVER_PORT }}
+        script: sudo systemctl stop my_telegram_bot.service
     - name: Copy via ssh
       uses: garygrossgarten/github-action-scp@v0.8.0
       with:
-          local: .
-          remote: /home/py-bot/
-          host: ${{ secrets.REMOTE_SERVER_IP }}
-          username: ${{ secrets.SSH_USERNAME }}
-          privateKey: ${{ secrets.SSH_PRIVATE_KEY }}
+        local: .
+        remote: /home/py-bot/
+        host: ${{ secrets.REMOTE_SERVER_IP }}
+        username: ${{ secrets.SSH_USERNAME }}
+        privateKey: ${{ secrets.SSH_PRIVATE_KEY }}
     - name: Remote service start
       uses: spcily/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.REMOTE_SERVER_IP }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.REMOTE_SERVER_PORT }}
-          script: sudo systemctl start my_telegram_bot.service
+      with:
+        host: ${{ secrets.REMOTE_SERVER_IP }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.REMOTE_SERVER_PORT }}
+        script: sudo systemctl start my_telegram_bot.service
 
             
