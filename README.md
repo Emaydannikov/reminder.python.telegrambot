@@ -1,4 +1,4 @@
-#NotificationBot: Your Personal Reminder 🕰️🤖
+#NotificationBot: Your Personal Reminder 🕰️🤖#
 
 #NotificationBot is a Telegram bot designed to provide timely reminders, ensuring you never miss out on important tasks, habits, or any other activity.
 ##Features
