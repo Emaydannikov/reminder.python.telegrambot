@@ -1,2 +1,1 @@
-TOKEN = "your_token"
-FILE_NAME = "notification.json"
+TOKEN = "6399240847:AAEOJUrYD9ihJO2Vzfih2iUWKuFwrLflztY"
